@@ -1,8 +1,16 @@
+import pygame.midi as midi
+
+
 class Rack(object):
-	"""handles all devices and connections"""
+	"""
+	handles all devices and connections
+	
+	connections: list of tupels (senderID, destinationID)
+	"""
 	def __init__(self, name):
 		self.name = name
 		self.devices = {}
+		self.connections = []
 
 	def change(self, deviceID, paramName, newValue):
 		"""
@@ -44,18 +52,72 @@ class Rack(object):
 		"""adds new device"""
 		self.devices[id] = device
 
+	def handleMessages(self):
+		"""handles one message of every device"""
+		for id, device in self.devices.items():
+			if device.poll():
+				self.dispatch(id, device.read())
+
+	def dispatch(self, senderID, msg):
+		"""delivers message to right device"""
+		destinations = self.lookup(senderID)
+		for destinationID in destinations:
+			self.getDeviceByID(destinationID).receiveMessage(msg)
+
+	def lookup(self, senderID):
+		"""looks for any connection and returns list of destination ids"""
+		destinations = []
+		for connection in self.connections:
+			if connection[0] = senderID:
+				destinations.append(connection[1])
+		return destinations
+
+	def connect(self, sender, destination):
+		"""adds new connection"""
+		if (sender in self.devices) and (destination in self.devices):
+			self.connections.append((sender, destination))
+			return True
+		else:
+			return False
+
+	def createInterfaces(self):
+		"""
+		creates all midi interfaces available as devices
+		@todo: sort in- and output of one hardware
+		"""
+		n = midi.get_count()
+		for i in xrange(n/2):
+			info = midi.get_device_info(i*2)
+			newIf = Interface(info[1], i*2-1, i*2)
+
 
 class Device(object):
 	"""every part of the rack"""
-	def __init__(self, arg):
-		super(Device, self).__init__()
-		self.arg = arg
+	def __init__(self, name):
+		self.name = name
+		self.messageQueue = []
+
+	def receiveMessage(self, msg):
+		"""gets called when other device sends message"""
+		pass
+
+	def poll(self):
+		"""returns true if there are messages to send"""
+		return len(self.messageQueue) != 0
+
+	def read(self):
+		"""returns next message to be sent"""
+		return self.messageQueue.pop()
+
+	def send(self, msg):
+		"""prepares message to get sent to other device"""
+		self.messageQueue.insert(0, msg)
 
 
 class Instrument(Device):
 	"""device that represents a hardware synthesizer"""
 	def __init__(self, name):
-		self.name = name
+		super(Instrument, self).__init__(name)
 		self.parameters = {}
 		
 	def changeParam(self, paramName, value):
@@ -99,16 +161,31 @@ class Instrument(Device):
 
 class Utility(Device):
 	"""device that processes midi data"""
-	def __init__(self, arg):
-		super(Utilizy, self).__init__()
-		self.arg = arg
+	def __init__(self, name):
+		super(Utility, self).__init__(name)
 		
 
 class Interface(Utility):
 	"""communicates with MIDI interface"""
-	def __init__(self, arg):
-		super(Interface, self).__init__()
-		self.arg = arg
+	def __init__(self, name, inputID, outputID):
+		super(Interface, self).__init__(name)
+		self.inputID = inputID
+		self.input = midi.Input(inputID)
+		self.outputID = outputID
+		self.Output = midi.Output(outputID)
+
+	def receiveMessage(self, msg):
+		"""receives Message from device"""
+		midistring = msg.getRawMIDI()
+		self.output.write([midistring])
+
+	def poll(self):
+		"""wrapper for midi poll"""
+		return self.input.poll()
+
+	def read(self):
+		"""wrapper for midi read"""
+		return Message(rawmidi=self.input.read(1))
 		
 
 class Parameter(object):
@@ -135,6 +212,7 @@ class SynthParam(Parameter):
 		super(SynthParam, self).__init__(name)
 		self.inSync = False
 		self.midiTemplate = ""
+		self.outport = ""
 
 	def update(self):
 		"""
@@ -175,6 +253,7 @@ class SynthParam(Parameter):
 	def getMIDIMessage(self):
 		"""returns midi message"""
 		return True
+
 
 		
 class NormalParam(SynthParam):
@@ -239,4 +318,8 @@ class MIDITemplate(object):
 
 	def getMessage(self, value):
 		"""makes message from value and template"""
+		pass
+
+	def getValue(self, message):
+		"""gets value from midi message"""
 		pass

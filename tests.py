@@ -20,6 +20,10 @@ class TestRack(unittest.TestCase):
 		self.assertTrue(self.r1.change(1, "normalparam1", 64))
 		self.assertEqual(self.r1.getDeviceByID(1).getParamByName("normalparam1").getValue(), 64)
 
+	def test_messages(self):
+		"""tests message delivery between devices"""
+		pass
+
 
 class TestDevice(unittest.TestCase):
 	"""tests device"""
