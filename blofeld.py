@@ -2,9 +2,10 @@
 # encoding: utf-8
 
 import midimanager as mm
+import wx
 
 
-class Blofeld(mm.Instrument):
+class Model(mm.Instrument):
 
     """represents the Waldorf Blofeld Synthesizer"""
 
@@ -20,3 +21,14 @@ class Blofeld(mm.Instrument):
         """
         p = mm.SynthParam('LFO1-Speed', self, 'normal', mm.CCTemplate(16))
         self.addParam(p)
+
+
+class View(wx.Panel):
+
+    """parameter panel for blofeld"""
+
+    def __init__(self, parent):
+        """@todo: to be defined1. """
+        wx.Panel.__init__(self, parent)
+
+        self.slider_LFO1S = wx.Slider
